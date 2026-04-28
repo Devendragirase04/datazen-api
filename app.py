@@ -16,8 +16,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, PageBreak, HRFlowable
 from reportlab.lib.units import inch, cm
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+import tempfile, traceback, gc, pickle
 from datetime import datetime
-import tempfile, traceback
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
@@ -29,7 +29,7 @@ REPORT_FOLDER = 'reports'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(REPORT_FOLDER, exist_ok=True)
 
-stored_dfs = {}
+stored_dfs = {} # Keep for backward compatibility or small cache, but we'll use files
 
 def df_to_summary(df):
     num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
@@ -85,51 +85,75 @@ def upload():
     try:
         df = pd.read_csv(f)
         session_id = str(uuid.uuid4())
-        stored_dfs[session_id] = df.copy()
+        # Save to disk to save RAM
+        path = os.path.join(UPLOAD_FOLDER, f'{session_id}.pkl')
+        with open(path, 'wb') as tmp:
+            pickle.dump(df, tmp)
+        
         summary = df_to_summary(df)
+        del df # Clear from RAM
+        gc.collect()
         return jsonify({'session_id': session_id, 'summary': summary})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+def _get_df(sid):
+    path = os.path.join(UPLOAD_FOLDER, f'{sid}.pkl')
+    if not os.path.exists(path):
+        return None
+    with open(path, 'rb') as f:
+        return pickle.load(f)
 
 @app.route('/fill_nulls', methods=['POST'])
 def fill_nulls():
     data = request.json
     sid = data.get('session_id')
-    strategy = data.get('strategy', {})  # {col: method}
-    if sid not in stored_dfs:
-        return jsonify({'error': 'Session expired'}), 404
-    df = stored_dfs[sid].copy()
-    applied = []
-    for col, method in strategy.items():
-        if col not in df.columns:
-            continue
-        before = int(df[col].isnull().sum())
-        if before == 0:
-            continue
-        if method == 'mean':
-            df[col].fillna(df[col].mean(), inplace=True)
-        elif method == 'median':
-            df[col].fillna(df[col].median(), inplace=True)
-        elif method == 'mode':
-            mode_val = df[col].mode()
-            if len(mode_val) > 0:
-                df[col].fillna(mode_val[0], inplace=True)
-        elif method == 'drop':
-            df.dropna(subset=[col], inplace=True)
-        after = int(df[col].isnull().sum())
-        applied.append({'col': col, 'method': method, 'before': before, 'after': after})
-    stored_dfs[sid] = df
-    summary = df_to_summary(df)
-    return jsonify({'applied': applied, 'summary': summary})
+    strategy = data.get('strategy', {})
+    df = _get_df(sid)
+    if df is None:
+        return jsonify({'error': 'Session expired. Please upload again.'}), 400
+    
+    try:
+        applied = []
+        for col, method in strategy.items():
+            if col not in df.columns:
+                continue
+            before = int(df[col].isnull().sum())
+            if before == 0:
+                continue
+            if method == 'mean':
+                df[col].fillna(df[col].mean(), inplace=True)
+            elif method == 'median':
+                df[col].fillna(df[col].median(), inplace=True)
+            elif method == 'mode':
+                mode_val = df[col].mode()
+                if len(mode_val) > 0:
+                    df[col].fillna(mode_val[0], inplace=True)
+            elif method == 'drop':
+                df.dropna(subset=[col], inplace=True)
+            after = int(df[col].isnull().sum())
+            applied.append({'col': col, 'method': method, 'before': before, 'after': after})
+        
+        # Save back to disk
+        path = os.path.join(UPLOAD_FOLDER, f'{sid}.pkl')
+        with open(path, 'wb') as tmp:
+            pickle.dump(df, tmp)
+            
+        summary = df_to_summary(df)
+        del df
+        gc.collect()
+        return jsonify({'applied': applied, 'summary': summary})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/dashboard', methods=['POST'])
 def dashboard():
     try:
         data = request.json
         sid = data.get('session_id')
-        if sid not in stored_dfs:
+        df = _get_df(sid)
+        if df is None:
             return jsonify({'error': 'Session expired. Please upload again.'}), 400
-        df = stored_dfs[sid]
         num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
         cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
         charts = []
@@ -210,6 +234,8 @@ def dashboard():
             fig.update_layout(**dark, title_font_size=14, height=350, coloraxis_showscale=False)
             charts.append({'title': 'Outlier Counts', 'json': fig.to_json()})
 
+        del df
+        gc.collect()
         return jsonify({'charts': charts})
     except Exception as e:
         print("DASHBOARD ERROR:", traceback.format_exc())
@@ -220,13 +246,15 @@ def generate_report():
     try:
         data = request.json
         sid = data.get('session_id')
-        if sid not in stored_dfs:
+        df = _get_df(sid)
+        if df is None:
             return jsonify({'error': 'Session expired. Please upload again.'}), 400
-        df = stored_dfs[sid]
         filename = data.get('filename', 'dataset')
         
         report_path = os.path.join(REPORT_FOLDER, f'report_{sid}.pdf')
         _build_pdf_report(df, report_path, filename)
+        del df
+        gc.collect()
         return jsonify({'report_url': f'/download_report/{sid}'})
     except Exception as e:
         print("REPORT ERROR:", traceback.format_exc())
@@ -241,9 +269,9 @@ def download_report(sid):
 
 @app.route('/download_clean/<sid>')
 def download_clean(sid):
-    if sid not in stored_dfs:
-        return jsonify({'error': 'Session expired'}), 404
-    df = stored_dfs[sid]
+    df = _get_df(sid)
+    if df is None:
+        return jsonify({'error': 'Session expired'}), 400
     buf = io.StringIO()
     df.to_csv(buf, index=False)
     buf.seek(0)
