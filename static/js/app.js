@@ -42,7 +42,7 @@ async function uploadFile(file) {
     sessionId = data.session_id;
     summaryData = data.summary;
     setTimeout(() => { goToPanel(2); buildQualityPanel(); }, 400);
-  } catch(e) {
+  } catch (e) {
     showToast('Upload failed: ' + e.message, 'error');
     resetUploadUI();
   }
@@ -130,8 +130,8 @@ function buildQualityPanel() {
         </td>
         <td>
           ${col.null_count > 0
-            ? `<select class="strategy-select" id="strategy_${col.column}">${opts}<option value="none">skip</option></select>`
-            : `<span style="color:var(--muted);font-size:11px">—</span>`}
+        ? `<select class="strategy-select" id="strategy_${col.column}">${opts}<option value="none">skip</option></select>`
+        : `<span style="color:var(--muted);font-size:11px">—</span>`}
         </td>
       </tr>`;
   });
@@ -140,9 +140,9 @@ function buildQualityPanel() {
   if (s.sample && s.sample.length > 0) {
     const cols = Object.keys(s.sample[0]);
     const showCols = cols.slice(0, 6);
-    let tbl = `<table class="data-table"><thead><tr>${showCols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`;
+    let tbl = `<table class="data-table"><thead><tr>${showCols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
     s.sample.forEach(row => {
-      tbl += `<tr>${showCols.map(c => `<td>${row[c] === '' ? '<span style="color:var(--danger)">NaN</span>' : String(row[c]).substring(0,18)}</td>`).join('')}</tr>`;
+      tbl += `<tr>${showCols.map(c => `<td>${row[c] === '' ? '<span style="color:var(--danger)">NaN</span>' : String(row[c]).substring(0, 18)}</td>`).join('')}</tr>`;
     });
     tbl += '</tbody></table>';
     document.getElementById('sampleTableWrap').innerHTML = tbl;
@@ -189,7 +189,7 @@ async function applyFillNulls() {
     summaryData = data.summary;
     buildQualityPanel();
     showToast(`✓ Imputation applied to ${data.applied.length} columns`, 'success');
-  } catch(e) {
+  } catch (e) {
     showToast('Error: ' + e.message, 'error');
   } finally {
     document.getElementById('applyFillBtn').textContent = '✦ Apply Imputation';
@@ -227,14 +227,11 @@ async function loadDashboard() {
           <span>${chart.title}</span>
           <span style="font-size:10px;color:var(--bg3)">Plotly</span>
         </div>
-        <div class="chart-card-body" id="chart_${i}"></div>`;
+        <div class="chart-card-body" id="chart_${i}">${chart.html}</div>`;
       grid.appendChild(card);
-      
-      const chartData = JSON.parse(chart.json);
-      Plotly.newPlot(`chart_${i}`, chartData.data, chartData.layout, {responsive: true, displayModeBar: false});
     });
     showToast(`${data.charts.length} charts generated`, 'success');
-  } catch(e) {
+  } catch (e) {
     loading.classList.add('hidden');
     showToast('Dashboard error: ' + e.message, 'error');
   }
@@ -261,7 +258,7 @@ async function generateReport() {
     reportUrl = data.report_url;
     document.getElementById('reportReady').classList.remove('hidden');
     showToast('Report generated successfully!', 'success');
-  } catch(e) {
+  } catch (e) {
     document.getElementById('genLoading').classList.add('hidden');
     document.getElementById('reportPreview').classList.remove('hidden');
     showToast('Report error: ' + e.message, 'error');
