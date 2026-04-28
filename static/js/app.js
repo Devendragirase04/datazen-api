@@ -227,8 +227,11 @@ async function loadDashboard() {
           <span>${chart.title}</span>
           <span style="font-size:10px;color:var(--bg3)">Plotly</span>
         </div>
-        <div class="chart-card-body" id="chart_${i}">${chart.html}</div>`;
+        <div class="chart-card-body" id="chart_${i}"></div>`;
       grid.appendChild(card);
+      
+      const chartData = JSON.parse(chart.json);
+      Plotly.newPlot(`chart_${i}`, chartData.data, chartData.layout, {responsive: true, displayModeBar: false});
     });
     showToast(`${data.charts.length} charts generated`, 'success');
   } catch (e) {
