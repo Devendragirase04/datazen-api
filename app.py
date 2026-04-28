@@ -142,7 +142,7 @@ def dashboard():
                         title='Missing Values Heatmap', aspect='auto',
                         labels={'color': 'Is Null'})
         fig.update_layout(**dark, title_font_size=14, height=350, coloraxis_showscale=False)
-        charts.append({'title': 'Missing Values Heatmap', 'html': fig.to_html(full_html=False, include_plotlyjs=False)})
+        charts.append({'title': 'Missing Values Heatmap', 'json': fig.to_json()})
 
     # 2. Distribution of numerical cols
     for col in num_cols[:6]:
@@ -150,14 +150,14 @@ def dashboard():
                            color_discrete_sequence=['#58a6ff'])
         fig.update_layout(**dark, title_font_size=13, height=320, bargap=0.05)
         fig.update_traces(marker_line_color='#21262d', marker_line_width=1)
-        charts.append({'title': f'Distribution: {col}', 'html': fig.to_html(full_html=False, include_plotlyjs=False)})
+        charts.append({'title': f'Distribution: {col}', 'json': fig.to_json()})
 
     # 3. Box plots
     if num_cols:
         fig = px.box(df[num_cols[:8]], title='Box Plots – Numerical Columns',
                      color_discrete_sequence=px.colors.qualitative.Set2)
         fig.update_layout(**dark, title_font_size=14, height=400)
-        charts.append({'title': 'Box Plots', 'html': fig.to_html(full_html=False, include_plotlyjs=False)})
+        charts.append({'title': 'Box Plots', 'json': fig.to_json()})
 
     # 4. Correlation heatmap
     if len(num_cols) >= 2:
@@ -165,7 +165,7 @@ def dashboard():
         fig = px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r',
                         title='Correlation Heatmap', zmin=-1, zmax=1)
         fig.update_layout(**dark, title_font_size=14, height=420)
-        charts.append({'title': 'Correlation Heatmap', 'html': fig.to_html(full_html=False, include_plotlyjs=False)})
+        charts.append({'title': 'Correlation Heatmap', 'json': fig.to_json()})
 
     # 5. Categorical bar charts
     for col in cat_cols[:4]:
@@ -174,7 +174,7 @@ def dashboard():
                      labels={'x': col, 'y': 'Count'},
                      color=vc.values, color_continuous_scale='Blues')
         fig.update_layout(**dark, title_font_size=13, height=340, coloraxis_showscale=False)
-        charts.append({'title': f'Value Counts: {col}', 'html': fig.to_html(full_html=False, include_plotlyjs=False)})
+        charts.append({'title': f'Value Counts: {col}', 'json': fig.to_json()})
 
     # 6. Pie chart for top categorical
     if cat_cols:
@@ -184,7 +184,7 @@ def dashboard():
                      title=f'Pie Chart: {col}', hole=0.4,
                      color_discrete_sequence=px.colors.qualitative.Set3)
         fig.update_layout(**dark, title_font_size=13, height=380)
-        charts.append({'title': f'Pie: {col}', 'html': fig.to_html(full_html=False, include_plotlyjs=False)})
+        charts.append({'title': f'Pie: {col}', 'json': fig.to_json()})
 
     # 7. Scatter matrix
     if len(num_cols) >= 2:
@@ -192,7 +192,7 @@ def dashboard():
         fig = px.scatter_matrix(df[cols_to_use].dropna(), title='Scatter Matrix',
                                 color_discrete_sequence=['#58a6ff'])
         fig.update_layout(**dark, title_font_size=14, height=500)
-        charts.append({'title': 'Scatter Matrix', 'html': fig.to_html(full_html=False, include_plotlyjs=False)})
+        charts.append({'title': 'Scatter Matrix', 'json': fig.to_json()})
 
     # 8. Outlier detection using IQR
     if num_cols:
@@ -207,7 +207,7 @@ def dashboard():
                      labels={'x': 'Column', 'y': 'Outlier Count'},
                      color=list(outlier_counts.values()), color_continuous_scale='Reds')
         fig.update_layout(**dark, title_font_size=14, height=350, coloraxis_showscale=False)
-        charts.append({'title': 'Outlier Counts', 'html': fig.to_html(full_html=False, include_plotlyjs=False)})
+        charts.append({'title': 'Outlier Counts', 'json': fig.to_json()})
 
     return jsonify({'charts': charts})
 

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataZen — CSV Analytics Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <span class="logo-icon">⬡</span>
+    <span class="logo-text">DataZen</span>
+  </div>
+  <nav class="steps-nav" id="stepsNav">
+    <div class="step active" data-step="1">01 Upload</div>
+    <div class="step" data-step="2">02 Quality</div>
+    <div class="step" data-step="3">03 Dashboard</div>
+    <div class="step" data-step="4">04 Report</div>
+  </nav>
+  <div class="header-actions">
+    <button class="btn-ghost" id="resetBtn" onclick="resetAll()">↺ Reset</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- PANEL 1: UPLOAD -->
+  <section class="panel active" id="panel1">
+    <div class="panel-inner centered">
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">⬡</div>
+        <h2 class="upload-title">Drop your CSV here</h2>
+        <p class="upload-sub">or click to browse files</p>
+        <input type="file" id="fileInput" accept=".csv" hidden>
+        <button class="btn-primary" onclick="document.getElementById('fileInput').click()">Select CSV File</button>
+        <p class="upload-limit">Max 50MB · CSV only</p>
+      </div>
+      <div class="upload-progress hidden" id="uploadProgress">
+        <div class="progress-ring">
+          <svg viewBox="0 0 80 80">
+            <circle class="ring-bg" cx="40" cy="40" r="34"/>
+            <circle class="ring-fill" id="ringFill" cx="40" cy="40" r="34"/>
+          </svg>
+          <span class="ring-label" id="ringLabel">0%</span>
+        </div>
+        <p class="progress-text">Analysing dataset...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PANEL 2: QUALITY -->
+  <section class="panel hidden" id="panel2">
+    <div class="panel-inner">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Data Quality</h2>
+          <p class="panel-sub" id="datasetInfo">—</p>
+        </div>
+        <div class="panel-actions">
+          <button class="btn-secondary" id="applyFillBtn" onclick="applyFillNulls()">✦ Apply Imputation</button>
+          <button class="btn-primary" onclick="goToDashboard()">Dashboard →</button>
+        </div>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="kpi-row" id="kpiRow"></div>
+
+      <!-- Two columns: null table + settings -->
+      <div class="quality-grid">
+        <div class="card">
+          <div class="card-header">Column Overview</div>
+          <div class="table-wrap">
+            <table class="data-table" id="colTable">
+              <thead><tr>
+                <th>Column</th><th>Type</th><th>Unique</th><th>Nulls</th><th>Null %</th><th>Strategy</th>
+              </tr></thead>
+              <tbody id="colTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="side-panel">
+          <div class="card">
+            <div class="card-header">Quick Impute All</div>
+            <div class="quick-btns">
+              <button class="btn-outline" onclick="setAllStrategy('median')">Median (Num)</button>
+              <button class="btn-outline" onclick="setAllStrategy('mean')">Mean (Num)</button>
+              <button class="btn-outline" onclick="setAllStrategy('mode')">Mode (All)</button>
+              <button class="btn-outline danger" onclick="setAllStrategy('drop')">Drop Rows</button>
+            </div>
+          </div>
+          <div class="card mt-2">
+            <div class="card-header">Sample Data</div>
+            <div class="table-wrap" id="sampleTableWrap"></div>
+          </div>
+          <div class="card mt-2">
+            <div class="card-header">Download</div>
+            <button class="btn-outline full-width" id="downloadCleanBtn" onclick="downloadClean()">⬇ Download Cleaned CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PANEL 3: DASHBOARD -->
+  <section class="panel hidden" id="panel3">
+    <div class="panel-inner">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Dashboard</h2>
+          <p class="panel-sub">Interactive visualizations</p>
+        </div>
+        <div class="panel-actions">
+          <button class="btn-secondary" onclick="loadDashboard()">↺ Refresh</button>
+          <button class="btn-primary" onclick="goToReport()">Report →</button>
+        </div>
+      </div>
+      <div class="loading-charts hidden" id="loadingCharts">
+        <div class="spinner"></div>
+        <p>Generating visualizations...</p>
+      </div>
+      <div class="chart-grid" id="chartGrid"></div>
+    </div>
+  </section>
+
+  <!-- PANEL 4: REPORT -->
+  <section class="panel hidden" id="panel4">
+    <div class="panel-inner">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">PDF Report</h2>
+          <p class="panel-sub">5-page comprehensive analysis</p>
+        </div>
+        <div class="panel-actions">
+          <button class="btn-primary" id="genReportBtn" onclick="generateReport()">⬡ Generate Report</button>
+        </div>
+      </div>
+      <div class="report-preview" id="reportPreview">
+        <div class="report-placeholder">
+          <div class="rp-icon">📄</div>
+          <h3>Generate your report</h3>
+          <p>Click "Generate Report" to create a 5-page PDF with full dataset analysis, statistics, visualizations and insights.</p>
+          <div class="rp-pages">
+            <div class="rp-page">Cover & KPIs</div>
+            <div class="rp-page">Dataset Overview</div>
+            <div class="rp-page">Data Quality</div>
+            <div class="rp-page">Statistical Analysis</div>
+            <div class="rp-page">Insights & Charts</div>
+          </div>
+        </div>
+      </div>
+      <div class="report-ready hidden" id="reportReady">
+        <div class="report-success">
+          <span class="success-icon">✓</span>
+          <h3>Report Ready!</h3>
+          <p>Your 5-page PDF report has been generated.</p>
+          <div class="report-actions">
+            <button class="btn-primary large" id="downloadReportBtn" onclick="downloadReport()">⬇ Download PDF Report</button>
+          </div>
+        </div>
+      </div>
+      <div class="gen-loading hidden" id="genLoading">
+        <div class="spinner"></div>
+        <p>Building your report...</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- TOAST -->
+<div class="toast hidden" id="toast"></div>
+
+<script src="static/js/app.js"></script>
+</body>
+</html>
