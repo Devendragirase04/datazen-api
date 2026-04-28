@@ -160,67 +160,79 @@ def dashboard():
 
         dark = {'paper_bgcolor': '#0d1117', 'plot_bgcolor': '#161b22', 'font': {'color': '#e6edf3'}}
 
-        # 1. Distribution: Violin Plots (Numerical)
-        for col in num_cols[:3]:
-            fig = px.violin(df, y=col, box=True, points='all', title=f'Distribution Details: {col}',
-                            color_discrete_sequence=['#ff7f0e'])
-            fig.update_layout(**dark, height=400)
-            charts.append({'title': f'Violin: {col}', 'json': fig.to_json()})
+        # 1. Distribution: Violin Plots
+        try:
+            for col in num_cols[:3]:
+                fig = px.violin(df, y=col, box=True, points='all', title=f'Distribution: {col}',
+                                color_discrete_sequence=['#ff7f0e'])
+                fig.update_layout(**dark, height=400)
+                charts.append({'title': f'Violin: {col}', 'json': fig.to_json()})
+        except: pass
 
-        # 2. Relationship: Scatter Plots (Numerical vs Numerical)
-        if len(num_cols) >= 2:
-            fig = px.scatter(df, x=num_cols[0], y=num_cols[1], trendline="ols",
-                             title=f'Relationship: {num_cols[0]} vs {num_cols[1]}',
-                             color_discrete_sequence=['#00cc96'])
-            fig.update_layout(**dark, height=450)
-            charts.append({'title': 'Scatter Analysis', 'json': fig.to_json()})
+        # 2. Relationship: Scatter Plots
+        try:
+            if len(num_cols) >= 2:
+                # Try with trendline, fallback if statsmodels missing
+                try:
+                    fig = px.scatter(df, x=num_cols[0], y=num_cols[1], trendline="ols",
+                                     title=f'Relationship: {num_cols[0]} vs {num_cols[1]}')
+                except:
+                    fig = px.scatter(df, x=num_cols[0], y=num_cols[1],
+                                     title=f'Relationship: {num_cols[0]} vs {num_cols[1]}')
+                
+                fig.update_layout(**dark, height=450)
+                charts.append({'title': 'Scatter Analysis', 'json': fig.to_json()})
+        except: pass
 
         # 3. Proportion: Enhanced Pie Chart
-        if cat_cols:
-            col = cat_cols[0]
-            vc = df[col].value_counts().head(10)
-            fig = px.pie(values=vc.values, names=vc.index.astype(str), hole=0.5,
-                         title=f'Proportion: {col}',
-                         color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig.update_layout(**dark, height=400)
-            charts.append({'title': f'Pie: {col}', 'json': fig.to_json()})
+        try:
+            if cat_cols:
+                col = cat_cols[0]
+                vc = df[col].value_counts().head(10)
+                fig = px.pie(values=vc.values, names=vc.index.astype(str), hole=0.5,
+                             title=f'Proportion: {col}',
+                             color_discrete_sequence=px.colors.qualitative.Pastel)
+                fig.update_layout(**dark, height=400)
+                charts.append({'title': f'Pie: {col}', 'json': fig.to_json()})
+        except: pass
 
-        # 4. Correlation Heatmap (Vibrant)
-        if len(num_cols) >= 3:
-            corr = df[num_cols].corr().round(2)
-            fig = px.imshow(corr, text_auto=True, color_continuous_scale='Viridis',
-                            title='Interactive Correlation Matrix')
-            fig.update_layout(**dark, height=450)
-            charts.append({'title': 'Correlations', 'json': fig.to_json()})
+        # 4. Correlation Heatmap
+        try:
+            if len(num_cols) >= 3:
+                corr = df[num_cols].corr().round(2)
+                fig = px.imshow(corr, text_auto=True, color_continuous_scale='Viridis',
+                                title='Interactive Correlation Matrix')
+                fig.update_layout(**dark, height=450)
+                charts.append({'title': 'Correlations', 'json': fig.to_json()})
+        except: pass
 
-        # 5. Categorical Breakdown: Sunburst or Bar
-        if len(cat_cols) >= 2:
-            fig = px.sunburst(df, path=cat_cols[:2], title='Categorical Hierarchy',
-                              color_discrete_sequence=px.colors.qualitative.Prism)
-            fig.update_layout(**dark, height=500)
-            charts.append({'title': 'Data Hierarchy', 'json': fig.to_json()})
-        elif cat_cols:
-            col = cat_cols[0]
-            fig = px.bar(df[col].value_counts().head(15), orientation='h',
-                         title=f'Top Categories: {col}',
-                         color_discrete_sequence=['#ab63fa'])
-            fig.update_layout(**dark, height=400)
-            charts.append({'title': 'Category Bar', 'json': fig.to_json()})
+        # 5. Data Hierarchy: Sunburst
+        try:
+            if len(cat_cols) >= 2:
+                fig = px.sunburst(df, path=cat_cols[:2], title='Categorical Hierarchy',
+                                  color_discrete_sequence=px.colors.qualitative.Prism)
+                fig.update_layout(**dark, height=500)
+                charts.append({'title': 'Data Hierarchy', 'json': fig.to_json()})
+        except: pass
 
-        # 6. Outlier Analysis (Box Plot Grid)
-        if num_cols:
-            fig = px.box(df[num_cols[:6]], title='Outlier Detection (Box Plot Grid)',
-                         color_discrete_sequence=px.colors.qualitative.Bold)
-            fig.update_layout(**dark, height=450)
-            charts.append({'title': 'Outliers', 'json': fig.to_json()})
+        # 6. Outlier Analysis
+        try:
+            if num_cols:
+                fig = px.box(df[num_cols[:6]], title='Outlier Detection (Box Plots)',
+                             color_discrete_sequence=px.colors.qualitative.Bold)
+                fig.update_layout(**dark, height=450)
+                charts.append({'title': 'Outliers', 'json': fig.to_json()})
+        except: pass
 
         # 7. Histogram with Rug
-        if num_cols:
-            col = num_cols[0]
-            fig = px.histogram(df, x=col, marginal="rug", title=f'Fequency & Rug: {col}',
-                               color_discrete_sequence=['#2ca02c'])
-            fig.update_layout(**dark, height=350)
-            charts.append({'title': 'Hist + Rug', 'json': fig.to_json()})
+        try:
+            if num_cols:
+                col = num_cols[0]
+                fig = px.histogram(df, x=col, marginal="rug", title=f'Frequency: {col}',
+                                   color_discrete_sequence=['#2ca02c'])
+                fig.update_layout(**dark, height=350)
+                charts.append({'title': 'Hist + Rug', 'json': fig.to_json()})
+        except: pass
 
         del df
         gc.collect()
