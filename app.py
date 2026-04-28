@@ -133,81 +133,81 @@ def dashboard():
         cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
         charts = []
 
-    dark = {'paper_bgcolor': '#0d1117', 'plot_bgcolor': '#161b22', 'font': {'color': '#e6edf3'}}
+        dark = {'paper_bgcolor': '#0d1117', 'plot_bgcolor': '#161b22', 'font': {'color': '#e6edf3'}}
 
-    # 1. Null heatmap
-    null_df = df.isnull().astype(int)
-    if null_df.sum().sum() > 0:
-        fig = px.imshow(null_df.T, color_continuous_scale=['#161b22', '#f85149'],
-                        title='Missing Values Heatmap', aspect='auto',
-                        labels={'color': 'Is Null'})
-        fig.update_layout(**dark, title_font_size=14, height=350, coloraxis_showscale=False)
-        charts.append({'title': 'Missing Values Heatmap', 'json': fig.to_json()})
+        # 1. Null heatmap
+        null_df = df.isnull().astype(int)
+        if null_df.sum().sum() > 0:
+            fig = px.imshow(null_df.T, color_continuous_scale=['#161b22', '#f85149'],
+                            title='Missing Values Heatmap', aspect='auto',
+                            labels={'color': 'Is Null'})
+            fig.update_layout(**dark, title_font_size=14, height=350, coloraxis_showscale=False)
+            charts.append({'title': 'Missing Values Heatmap', 'json': fig.to_json()})
 
-    # 2. Distribution of numerical cols
-    for col in num_cols[:6]:
-        fig = px.histogram(df, x=col, nbins=30, title=f'Distribution: {col}',
-                           color_discrete_sequence=['#58a6ff'])
-        fig.update_layout(**dark, title_font_size=13, height=320, bargap=0.05)
-        fig.update_traces(marker_line_color='#21262d', marker_line_width=1)
-        charts.append({'title': f'Distribution: {col}', 'json': fig.to_json()})
+        # 2. Distribution of numerical cols
+        for col in num_cols[:6]:
+            fig = px.histogram(df, x=col, nbins=30, title=f'Distribution: {col}',
+                               color_discrete_sequence=['#58a6ff'])
+            fig.update_layout(**dark, title_font_size=13, height=320, bargap=0.05)
+            fig.update_traces(marker_line_color='#21262d', marker_line_width=1)
+            charts.append({'title': f'Distribution: {col}', 'json': fig.to_json()})
 
-    # 3. Box plots
-    if num_cols:
-        fig = px.box(df[num_cols[:8]], title='Box Plots – Numerical Columns',
-                     color_discrete_sequence=px.colors.qualitative.Set2)
-        fig.update_layout(**dark, title_font_size=14, height=400)
-        charts.append({'title': 'Box Plots', 'json': fig.to_json()})
+        # 3. Box plots
+        if num_cols:
+            fig = px.box(df[num_cols[:8]], title='Box Plots – Numerical Columns',
+                         color_discrete_sequence=px.colors.qualitative.Set2)
+            fig.update_layout(**dark, title_font_size=14, height=400)
+            charts.append({'title': 'Box Plots', 'json': fig.to_json()})
 
-    # 4. Correlation heatmap
-    if len(num_cols) >= 2:
-        corr = df[num_cols].corr().round(2)
-        fig = px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r',
-                        title='Correlation Heatmap', zmin=-1, zmax=1)
-        fig.update_layout(**dark, title_font_size=14, height=420)
-        charts.append({'title': 'Correlation Heatmap', 'json': fig.to_json()})
+        # 4. Correlation heatmap
+        if len(num_cols) >= 2:
+            corr = df[num_cols].corr().round(2)
+            fig = px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r',
+                            title='Correlation Heatmap', zmin=-1, zmax=1)
+            fig.update_layout(**dark, title_font_size=14, height=420)
+            charts.append({'title': 'Correlation Heatmap', 'json': fig.to_json()})
 
-    # 5. Categorical bar charts
-    for col in cat_cols[:4]:
-        vc = df[col].value_counts().head(15)
-        fig = px.bar(x=vc.index.astype(str), y=vc.values, title=f'Value Counts: {col}',
-                     labels={'x': col, 'y': 'Count'},
-                     color=vc.values, color_continuous_scale='Blues')
-        fig.update_layout(**dark, title_font_size=13, height=340, coloraxis_showscale=False)
-        charts.append({'title': f'Value Counts: {col}', 'json': fig.to_json()})
+        # 5. Categorical bar charts
+        for col in cat_cols[:4]:
+            vc = df[col].value_counts().head(15)
+            fig = px.bar(x=vc.index.astype(str), y=vc.values, title=f'Value Counts: {col}',
+                         labels={'x': col, 'y': 'Count'},
+                         color=vc.values, color_continuous_scale='Blues')
+            fig.update_layout(**dark, title_font_size=13, height=340, coloraxis_showscale=False)
+            charts.append({'title': f'Value Counts: {col}', 'json': fig.to_json()})
 
-    # 6. Pie chart for top categorical
-    if cat_cols:
-        col = cat_cols[0]
-        vc = df[col].value_counts().head(8)
-        fig = px.pie(values=vc.values, names=vc.index.astype(str),
-                     title=f'Pie Chart: {col}', hole=0.4,
-                     color_discrete_sequence=px.colors.qualitative.Set3)
-        fig.update_layout(**dark, title_font_size=13, height=380)
-        charts.append({'title': f'Pie: {col}', 'json': fig.to_json()})
+        # 6. Pie chart for top categorical
+        if cat_cols:
+            col = cat_cols[0]
+            vc = df[col].value_counts().head(8)
+            fig = px.pie(values=vc.values, names=vc.index.astype(str),
+                         title=f'Pie Chart: {col}', hole=0.4,
+                         color_discrete_sequence=px.colors.qualitative.Set3)
+            fig.update_layout(**dark, title_font_size=13, height=380)
+            charts.append({'title': f'Pie: {col}', 'json': fig.to_json()})
 
-    # 7. Scatter matrix
-    if len(num_cols) >= 2:
-        cols_to_use = num_cols[:4]
-        fig = px.scatter_matrix(df[cols_to_use].dropna(), title='Scatter Matrix',
-                                color_discrete_sequence=['#58a6ff'])
-        fig.update_layout(**dark, title_font_size=14, height=500)
-        charts.append({'title': 'Scatter Matrix', 'json': fig.to_json()})
+        # 7. Scatter matrix
+        if len(num_cols) >= 2:
+            cols_to_use = num_cols[:4]
+            fig = px.scatter_matrix(df[cols_to_use].dropna(), title='Scatter Matrix',
+                                    color_discrete_sequence=['#58a6ff'])
+            fig.update_layout(**dark, title_font_size=14, height=500)
+            charts.append({'title': 'Scatter Matrix', 'json': fig.to_json()})
 
-    # 8. Outlier detection using IQR
-    if num_cols:
-        outlier_counts = {}
-        for col in num_cols:
-            q1, q3 = df[col].quantile(0.25), df[col].quantile(0.75)
-            iqr = q3 - q1
-            outliers = df[(df[col] < q1 - 1.5 * iqr) | (df[col] > q3 + 1.5 * iqr)][col]
-            outlier_counts[col] = len(outliers)
-        fig = px.bar(x=list(outlier_counts.keys()), y=list(outlier_counts.values()),
-                     title='Outlier Count per Column (IQR Method)',
-                     labels={'x': 'Column', 'y': 'Outlier Count'},
-                     color=list(outlier_counts.values()), color_continuous_scale='Reds')
-        fig.update_layout(**dark, title_font_size=14, height=350, coloraxis_showscale=False)
-        charts.append({'title': 'Outlier Counts', 'json': fig.to_json()})
+        # 8. Outlier detection using IQR
+        if num_cols:
+            outlier_counts = {}
+            for col in num_cols:
+                q1, q3 = df[col].quantile(0.25), df[col].quantile(0.75)
+                iqr = q3 - q1
+                outliers = df[(df[col] < q1 - 1.5 * iqr) | (df[col] > q3 + 1.5 * iqr)][col]
+                outlier_counts[col] = len(outliers)
+            fig = px.bar(x=list(outlier_counts.keys()), y=list(outlier_counts.values()),
+                         title='Outlier Count per Column (IQR Method)',
+                         labels={'x': 'Column', 'y': 'Outlier Count'},
+                         color=list(outlier_counts.values()), color_continuous_scale='Reds')
+            fig.update_layout(**dark, title_font_size=14, height=350, coloraxis_showscale=False)
+            charts.append({'title': 'Outlier Counts', 'json': fig.to_json()})
 
         return jsonify({'charts': charts})
     except Exception as e:
