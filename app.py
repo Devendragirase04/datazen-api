@@ -16,8 +16,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, PageBreak, HRFlowable
 from reportlab.lib.units import inch, cm
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from datetime import datetime
-import tempfile
+import tempfile, traceback
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
@@ -124,14 +123,15 @@ def fill_nulls():
 
 @app.route('/dashboard', methods=['POST'])
 def dashboard():
-    data = request.json
-    sid = data.get('session_id')
-    if sid not in stored_dfs:
-        return jsonify({'error': 'Session expired'}), 404
-    df = stored_dfs[sid]
-    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-    cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
-    charts = []
+    try:
+        data = request.json
+        sid = data.get('session_id')
+        if sid not in stored_dfs:
+            return jsonify({'error': 'Session expired. Please upload again.'}), 400
+        df = stored_dfs[sid]
+        num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+        charts = []
 
     dark = {'paper_bgcolor': '#0d1117', 'plot_bgcolor': '#161b22', 'font': {'color': '#e6edf3'}}
 
@@ -209,20 +209,27 @@ def dashboard():
         fig.update_layout(**dark, title_font_size=14, height=350, coloraxis_showscale=False)
         charts.append({'title': 'Outlier Counts', 'json': fig.to_json()})
 
-    return jsonify({'charts': charts})
+        return jsonify({'charts': charts})
+    except Exception as e:
+        print("DASHBOARD ERROR:", traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/generate_report', methods=['POST'])
 def generate_report():
-    data = request.json
-    sid = data.get('session_id')
-    if sid not in stored_dfs:
-        return jsonify({'error': 'Session expired'}), 404
-    df = stored_dfs[sid]
-    filename = data.get('filename', 'dataset')
-    
-    report_path = os.path.join(REPORT_FOLDER, f'report_{sid}.pdf')
-    _build_pdf_report(df, report_path, filename)
-    return jsonify({'report_url': f'/download_report/{sid}'})
+    try:
+        data = request.json
+        sid = data.get('session_id')
+        if sid not in stored_dfs:
+            return jsonify({'error': 'Session expired. Please upload again.'}), 400
+        df = stored_dfs[sid]
+        filename = data.get('filename', 'dataset')
+        
+        report_path = os.path.join(REPORT_FOLDER, f'report_{sid}.pdf')
+        _build_pdf_report(df, report_path, filename)
+        return jsonify({'report_url': f'/download_report/{sid}'})
+    except Exception as e:
+        print("REPORT ERROR:", traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/download_report/<sid>')
 def download_report(sid):
