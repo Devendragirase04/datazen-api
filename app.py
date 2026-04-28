@@ -317,122 +317,182 @@ def _mpl_fig_to_bytes(fig):
 
 
 def _build_pdf_report(df, path, filename):
-    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-    cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
+    try:
+        num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        cat_cols = df.select_dtypes(exclude=[np.number]).columns.tolist()
 
-    doc = SimpleDocTemplate(path, pagesize=A4,
-                            rightMargin=1.8*cm, leftMargin=1.8*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
-    styles = getSampleStyleSheet()
-    BG = colors.HexColor('#0d1117')
-    ACCENT = colors.HexColor('#58a6ff')
-    TEXT = colors.HexColor('#e6edf3')
-    MUTED = colors.HexColor('#8b949e')
-    CARD = colors.HexColor('#161b22')
+        doc = SimpleDocTemplate(path, pagesize=A4,
+                                rightMargin=1.8*cm, leftMargin=1.8*cm,
+                                topMargin=1.5*cm, bottomMargin=1.5*cm)
+        styles = getSampleStyleSheet()
+        BG = colors.HexColor('#0d1117')
+        ACCENT = colors.HexColor('#58a6ff')
+        TEXT = colors.HexColor('#e6edf3')
+        MUTED = colors.HexColor('#8b949e')
+        CARD = colors.HexColor('#161b22')
 
-    h2 = ParagraphStyle('H2', fontSize=15, textColor=ACCENT,
-                        spaceAfter=4, spaceBefore=10, fontName='Helvetica-Bold')
-    h3 = ParagraphStyle('H3', fontSize=11, textColor=TEXT,
-                        spaceAfter=3, spaceBefore=6, fontName='Helvetica-Bold')
-    body = ParagraphStyle('Body', fontSize=9, textColor=TEXT,
-                          spaceAfter=2, fontName='Helvetica', leading=14)
-    muted_style = ParagraphStyle('Muted', fontSize=8, textColor=MUTED,
-                                 spaceAfter=2, fontName='Helvetica')
+        h2 = ParagraphStyle('H2', fontSize=15, textColor=ACCENT,
+                            spaceAfter=4, spaceBefore=10, fontName='Helvetica-Bold')
+        h3 = ParagraphStyle('H3', fontSize=11, textColor=TEXT,
+                            spaceAfter=3, spaceBefore=6, fontName='Helvetica-Bold')
+        body = ParagraphStyle('Body', fontSize=9, textColor=TEXT,
+                              spaceAfter=2, fontName='Helvetica', leading=14)
+        muted_style = ParagraphStyle('Muted', fontSize=8, textColor=MUTED,
+                                     spaceAfter=2, fontName='Helvetica')
 
-    def page_bg(canvas, doc):
-        canvas.saveState()
-        canvas.setFillColor(BG)
-        canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
-        canvas.setFillColor(ACCENT)
-        canvas.rect(0, A4[1]-3, A4[0], 3, fill=1, stroke=0)
-        canvas.setFillColor(MUTED)
-        canvas.setFont('Helvetica', 7)
-        canvas.drawString(1.8*cm, 0.8*cm, f'DataZen Report | {filename} | Page {doc.page}')
-        canvas.drawRightString(A4[0]-1.8*cm, 0.8*cm, datetime.now().strftime('%B %d, %Y'))
-        canvas.restoreState()
+        def page_bg(canvas, doc):
+            canvas.saveState()
+            canvas.setFillColor(BG)
+            canvas.rect(0, 0, A4[0], A4[1], fill=1, stroke=0)
+            canvas.setFillColor(ACCENT)
+            canvas.rect(0, A4[1]-3, A4[0], 3, fill=1, stroke=0)
+            canvas.setFillColor(MUTED)
+            canvas.setFont('Helvetica', 7)
+            canvas.drawString(1.8*cm, 0.8*cm, f'DataZen Report | {filename} | Page {doc.page}')
+            canvas.drawRightString(A4[0]-1.8*cm, 0.8*cm, datetime.now().strftime('%B %d, %Y'))
+            canvas.restoreState()
 
-    story = []
+        story = []
 
-    # ---- PAGE 1: Cover ----
-    story.append(Spacer(1, 1.5*inch))
-    story.append(Paragraph("DATAZEN", ParagraphStyle(
-        'Cover', fontSize=40, textColor=ACCENT, fontName='Helvetica-Bold', alignment=TA_CENTER)))
-    story.append(Paragraph("Dataset Analysis Report", ParagraphStyle(
-        'Sub', fontSize=16, textColor=MUTED, fontName='Helvetica', alignment=TA_CENTER, spaceAfter=4)))
-    story.append(Spacer(1, 0.2*inch))
-    story.append(HRFlowable(width="60%", thickness=1, color=ACCENT, hAlign='CENTER'))
-    story.append(Spacer(1, 0.3*inch))
-    story.append(Paragraph(f"File: <b>{filename}.csv</b>", ParagraphStyle(
-        'CoverInfo', fontSize=11, textColor=TEXT, fontName='Helvetica', alignment=TA_CENTER)))
-    story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y at %H:%M')}", ParagraphStyle(
-        'CoverDate', fontSize=10, textColor=MUTED, fontName='Helvetica', alignment=TA_CENTER)))
-    story.append(Spacer(1, 0.4*inch))
+        # ---- PAGE 1: Cover ----
+        story.append(Spacer(1, 1.5*inch))
+        story.append(Paragraph("DATAZEN", ParagraphStyle(
+            'Cover', fontSize=40, textColor=ACCENT, fontName='Helvetica-Bold', alignment=TA_CENTER)))
+        story.append(Paragraph("Dataset Analysis Report", ParagraphStyle(
+            'Sub', fontSize=16, textColor=MUTED, fontName='Helvetica', alignment=TA_CENTER, spaceAfter=4)))
+        story.append(Spacer(1, 0.2*inch))
+        story.append(HRFlowable(width="60%", thickness=1, color=ACCENT, hAlign='CENTER'))
+        story.append(Spacer(1, 0.3*inch))
+        story.append(Paragraph(f"File: <b>{filename}.csv</b>", ParagraphStyle(
+            'CoverInfo', fontSize=11, textColor=TEXT, fontName='Helvetica', alignment=TA_CENTER)))
+        story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y at %H:%M')}", ParagraphStyle(
+            'CoverDate', fontSize=10, textColor=MUTED, fontName='Helvetica', alignment=TA_CENTER)))
+        story.append(Spacer(1, 0.4*inch))
 
-    kpi_data = [
-        ['Rows', 'Columns', 'Numerical', 'Categorical', 'Null Values'],
-        [str(df.shape[0]), str(df.shape[1]), str(len(num_cols)),
-         str(len(cat_cols)), str(int(df.isnull().sum().sum()))]
-    ]
-    kpi_table = Table(kpi_data, colWidths=[2.8*cm]*5)
-    kpi_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), CARD),
-        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#21262d')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), MUTED),
-        ('TEXTCOLOR', (0, 1), (-1, 1), ACCENT),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 8),
-        ('FONTSIZE', (0, 1), (-1, 1), 16),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOX', (0, 0), (-1, -1), 0.5, ACCENT),
-        ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#30363d')),
-        ('PADDING', (0, 0), (-1, -1), 8),
-    ]))
-    story.append(kpi_table)
-    story.append(Spacer(1, 0.5*inch))
-    story.append(Paragraph("Contents: Overview  -  Data Quality  -  Stats  -  Visuals", muted_style))
-    story.append(PageBreak())
+        kpi_data = [
+            ['Rows', 'Columns', 'Numerical', 'Categorical', 'Null Values'],
+            [str(df.shape[0]), str(df.shape[1]), str(len(num_cols)),
+             str(len(cat_cols)), str(int(df.isnull().sum().sum()))]
+        ]
+        kpi_table = Table(kpi_data, colWidths=[2.8*cm]*5)
+        kpi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), CARD),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#21262d')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), MUTED),
+            ('TEXTCOLOR', (0, 1), (-1, 1), ACCENT),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTSIZE', (0, 1), (-1, 1), 16),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOX', (0, 0), (-1, -1), 0.5, ACCENT),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#30363d')),
+            ('PADDING', (0, 0), (-1, -1), 8),
+        ]))
+        story.append(kpi_table)
+        story.append(Spacer(1, 0.5*inch))
+        story.append(Paragraph("Contents: Overview  -  Data Quality  -  Stats  -  Visuals", muted_style))
+        story.append(PageBreak())
 
-    # ---- PAGE 2: Dataset Overview ----
-    story.append(Paragraph("1. Dataset Overview", h2))
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
-    story.append(Spacer(1, 0.15*inch))
-    story.append(Paragraph(
-        f"Shape: <b>{df.shape[0]} rows x {df.shape[1]} columns</b>", body))
-    story.append(Spacer(1, 0.1*inch))
-    story.append(Paragraph("Column Information", h3))
+        # ---- PAGE 2: Dataset Overview ----
+        story.append(Paragraph("1. Dataset Overview", h2))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
+        story.append(Spacer(1, 0.15*inch))
+        story.append(Paragraph(
+            f"Shape: <b>{df.shape[0]} rows x {df.shape[1]} columns</b>", body))
+        story.append(Spacer(1, 0.1*inch))
+        story.append(Paragraph("Column Information", h3))
 
-    col_data = [['Column', 'Type', 'Dtype', 'Unique', 'Nulls']]
-    for col in df.columns[:25]:  # Limit to avoid overflow
-        ctype = 'Numerical' if col in num_cols else 'Categorical'
-        col_data.append([col[:20], ctype, str(df[col].dtype),
-                        str(df[col].nunique()), str(int(df[col].isnull().sum()))])
+        col_data = [['Column', 'Type', 'Dtype', 'Unique', 'Nulls']]
+        for col in df.columns[:25]:  # Limit to avoid overflow
+            ctype = 'Numerical' if col in num_cols else 'Categorical'
+            col_data.append([col[:20], ctype, str(df[col].dtype),
+                            str(df[col].nunique()), str(int(df[col].isnull().sum()))])
 
-    col_table = Table(col_data, colWidths=[4.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
-    col_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), CARD),
-        ('TEXTCOLOR', (0, 0), (-1, 0), ACCENT),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#161b22'), colors.HexColor('#0d1117')]),
-        ('TEXTCOLOR', (0, 1), (-1, -1), TEXT),
-        ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#21262d')),
-    ]))
-    story.append(col_table)
-    story.append(PageBreak())
+        col_table = Table(col_data, colWidths=[4.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+        col_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), CARD),
+            ('TEXTCOLOR', (0, 0), (-1, 0), ACCENT),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#161b22'), colors.HexColor('#0d1117')]),
+            ('TEXTCOLOR', (0, 1), (-1, -1), TEXT),
+            ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#21262d')),
+        ]))
+        story.append(col_table)
+        story.append(PageBreak())
 
-    # ---- PAGE 3: Visuals ----
-    story.append(Paragraph("2. Visual Insights", h2))
-    if num_cols:
-        fig, ax = plt.subplots(figsize=(8, 4), facecolor='#0d1117')
-        ax.set_facecolor('#161b22')
-        df[num_cols[0]].dropna().hist(ax=ax, color='#58a6ff', bins=30)
-        ax.set_title(f"Distribution of {num_cols[0]}", color=TEXT)
-        ax.tick_params(colors=MUTED)
-        img_bytes = _mpl_fig_to_bytes(fig)
-        plt.close(fig)
-        story.append(RLImage(io.BytesIO(img_bytes), width=14*cm, height=7*cm))
+        # ---- PAGE 3: Statistics ----
+        story.append(Paragraph("2. Statistical Summary", h2))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
+        story.append(Spacer(1, 0.15*inch))
+        if num_cols:
+            desc = df[num_cols].describe().round(3)
+            desc_data = [['Stat'] + num_cols[:6]]
+            for idx in desc.index:
+                row = [str(idx)]
+                for col in num_cols[:6]:
+                    row.append(str(desc.loc[idx, col]))
+                desc_data.append(row)
+            desc_table = Table(desc_data)
+            desc_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), CARD),
+                ('TEXTCOLOR', (0, 0), (-1, 0), ACCENT),
+                ('FONTSIZE', (0, 0), (-1, -1), 7),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#161b22'), colors.HexColor('#0d1117')]),
+                ('TEXTCOLOR', (0, 1), (-1, -1), TEXT),
+                ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#21262d')),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ]))
+            story.append(desc_table)
+        story.append(PageBreak())
 
-    doc.build(story, onFirstPage=page_bg, onLaterPages=page_bg)
+        # ---- PAGE 4: Visualizations ----
+        story.append(Paragraph("3. Visual Insights", h2))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
+        story.append(Spacer(1, 0.15*inch))
+        
+        # Add histogram if numerical columns exist
+        if num_cols:
+            try:
+                fig, ax = plt.subplots(figsize=(8, 4), facecolor='#0d1117')
+                ax.set_facecolor('#161b22')
+                df[num_cols[0]].dropna().hist(ax=ax, color='#58a6ff', bins=30, edgecolor='#30363d')
+                ax.set_title(f"Distribution of {num_cols[0]}", color='#e6edf3', fontsize=12, fontweight='bold')
+                ax.set_xlabel(num_cols[0], color='#8b949e')
+                ax.set_ylabel('Frequency', color='#8b949e')
+                ax.tick_params(colors='#8b949e')
+                ax.spines['bottom'].set_color('#30363d')
+                ax.spines['left'].set_color('#30363d')
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                img_bytes = _mpl_fig_to_bytes(fig)
+                plt.close(fig)
+                story.append(RLImage(io.BytesIO(img_bytes), width=14*cm, height=6*cm))
+                story.append(Spacer(1, 0.2*inch))
+            except Exception as e:
+                print(f"Error creating histogram: {e}")
+                story.append(Paragraph(f"Could not generate histogram: {str(e)}", body))
+        
+        story.append(PageBreak())
+
+        # ---- PAGE 5: Summary ----
+        story.append(Paragraph("4. Summary & Insights", h2))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
+        story.append(Spacer(1, 0.15*inch))
+        story.append(Paragraph(f"<b>Dataset Size:</b> {df.shape[0]} rows, {df.shape[1]} columns", body))
+        story.append(Spacer(1, 0.1*inch))
+        story.append(Paragraph(f"<b>Data Types:</b> {len(num_cols)} numerical, {len(cat_cols)} categorical", body))
+        story.append(Spacer(1, 0.1*inch))
+        story.append(Paragraph(f"<b>Missing Values:</b> {int(df.isnull().sum().sum())} total nulls", body))
+        story.append(Spacer(1, 0.1*inch))
+        story.append(Paragraph("<b>Data Quality:</b> Report generated successfully by DataZen", body))
+        story.append(Spacer(1, 0.3*inch))
+        story.append(Paragraph("Report prepared on: " + datetime.now().strftime('%B %d, %Y'), muted_style))
+
+        doc.build(story, onFirstPage=page_bg, onLaterPages=page_bg)
+    except Exception as e:
+        print(f"PDF Build Error: {str(e)}")
+        raise
 
 
 if __name__ == '__main__':
