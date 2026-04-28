@@ -70,15 +70,6 @@ def df_to_summary(df):
         'sample': df.head(5).fillna('').to_dict(orient='records')
     }
 
-def make_chart_b64(fig_plotly=None, fig_mpl=None):
-    buf = io.BytesIO()
-    if fig_plotly:
-        img_bytes = fig_plotly.to_image(format='png', width=900, height=400, scale=1.5)
-        return base64.b64encode(img_bytes).decode()
-    if fig_mpl:
-        fig_mpl.savefig(buf, format='png', dpi=120, bbox_inches='tight', facecolor='#0d1117')
-        buf.seek(0)
-        return base64.b64encode(buf.read()).decode()
 
 @app.route('/')
 def index():

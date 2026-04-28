@@ -1,4 +1,4 @@
-const API = '';  // same-origin
+const API = '';  // use relative path for production
 let sessionId = null;
 let summaryData = null;
 let currentFilename = 'dataset';
