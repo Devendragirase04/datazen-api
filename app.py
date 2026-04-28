@@ -176,84 +176,189 @@ def dashboard():
             'plot_bgcolor': '#161b22',
             'font': {'color': '#e6edf3'}
         }
+        
+        color_palettes = {
+            'vivid': ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'],
+            'pastel': px.colors.qualitative.Pastel,
+            'bold': px.colors.qualitative.Bold,
+            'plotly': px.colors.qualitative.Plotly,
+            'set1': px.colors.qualitative.Set1,
+            'set2': px.colors.qualitative.Set2,
+            'set3': px.colors.qualitative.Set3,
+        }
 
-        # 1. Distribution: Violin Plots
+        # 1. Histogram with Rug - First numerical column
         try:
-            for col in num_cols[:3]:
-                fig = px.violin(df, y=col, box=True, points='all',
-                                title=f'Distribution: {col}',
-                                color_discrete_sequence=['#ff7f0e'])
+            if num_cols:
+                col = num_cols[0]
+                fig = px.histogram(df, x=col, marginal="rug", title=f'📊 Frequency Distribution: {col}',
+                                   nbins=40, color_discrete_sequence=['#FF6B6B'])
+                fig.update_layout(**dark, height=400, bargap=0.1)
+                charts.append({'title': 'Histogram + Rug', 'json': fig.to_json()})
+        except Exception:
+            pass
+
+        # 2. Violin Plots for multiple numerical columns
+        try:
+            for i, col in enumerate(num_cols[:4]):
+                fig = px.violin(df, y=col, box=True, points='outliers',
+                                title=f'🎻 Violin Plot: {col}',
+                                color_discrete_sequence=[color_palettes['vivid'][i % len(color_palettes['vivid'])]])
                 fig.update_layout(**dark, height=400)
                 charts.append({'title': f'Violin: {col}', 'json': fig.to_json()})
         except Exception:
             pass
 
-        # 2. Relationship: Scatter Plots
+        # 3. Scatter Plot with Trendline
         try:
             if len(num_cols) >= 2:
                 try:
-                    fig = px.scatter(df, x=num_cols[0], y=num_cols[1], trendline="ols",
-                                     title=f'Relationship: {num_cols[0]} vs {num_cols[1]}')
+                    fig = px.scatter(df, x=num_cols[0], y=num_cols[1], trendline="lowess",
+                                     title=f'📈 Correlation: {num_cols[0]} vs {num_cols[1]}',
+                                     color_discrete_sequence=['#4ECDC4'])
+                    fig.update_traces(marker=dict(size=8, opacity=0.6))
                 except Exception:
                     fig = px.scatter(df, x=num_cols[0], y=num_cols[1],
-                                     title=f'Relationship: {num_cols[0]} vs {num_cols[1]}')
+                                     title=f'📈 Correlation: {num_cols[0]} vs {num_cols[1]}',
+                                     color_discrete_sequence=['#4ECDC4'])
                 fig.update_layout(**dark, height=450)
-                charts.append({'title': 'Scatter Analysis', 'json': fig.to_json()})
+                charts.append({'title': 'Scatter Plot', 'json': fig.to_json()})
         except Exception:
             pass
 
-        # 3. Proportion: Enhanced Pie Chart
+        # 4. Box Plot for Outlier Detection
+        try:
+            if num_cols:
+                fig = px.box(df[num_cols[:8]], title='📦 Outlier Detection (Box Plots)',
+                             color_discrete_sequence=color_palettes['vivid'])
+                fig.update_layout(**dark, height=450)
+                charts.append({'title': 'Box Plot Analysis', 'json': fig.to_json()})
+        except Exception:
+            pass
+
+        # 5. Area Chart - Cumulative Sum
+        try:
+            if num_cols:
+                col = num_cols[0]
+                cumsum_data = df[col].dropna().cumsum()
+                fig = px.area(y=cumsum_data, title=f'📈 Cumulative Sum: {col}',
+                              color_discrete_sequence=['#45B7D1'])
+                fig.update_layout(**dark, height=350)
+                charts.append({'title': 'Cumulative Area Chart', 'json': fig.to_json()})
+        except Exception:
+            pass
+
+        # 6. Bar Chart for Categorical Data
+        try:
+            if cat_cols:
+                col = cat_cols[0]
+                vc = df[col].value_counts().head(12)
+                fig = px.bar(x=vc.index.astype(str), y=vc.values,
+                             title=f'📊 Category Distribution: {col}',
+                             color_discrete_sequence=color_palettes['vivid'])
+                fig.update_layout(**dark, height=400, xaxis_tickangle=45)
+                charts.append({'title': f'Bar Chart: {col}', 'json': fig.to_json()})
+        except Exception:
+            pass
+
+        # 7. Donut Chart (Pie with hole)
         try:
             if cat_cols:
                 col = cat_cols[0]
                 vc = df[col].value_counts().head(10)
-                fig = px.pie(values=vc.values, names=vc.index.astype(str), hole=0.5,
-                             title=f'Proportion: {col}',
-                             color_discrete_sequence=px.colors.qualitative.Pastel)
+                fig = px.pie(values=vc.values, names=vc.index.astype(str), hole=0.4,
+                             title=f'🍩 Proportion: {col}',
+                             color_discrete_sequence=color_palettes['bold'])
                 fig.update_layout(**dark, height=400)
-                charts.append({'title': f'Pie: {col}', 'json': fig.to_json()})
+                charts.append({'title': 'Donut Chart', 'json': fig.to_json()})
         except Exception:
             pass
 
-        # 4. Correlation Heatmap
+        # 8. Correlation Heatmap
         try:
             if len(num_cols) >= 3:
                 corr = df[num_cols].corr().round(2)
-                fig = px.imshow(corr, text_auto=True, color_continuous_scale='Viridis',
-                                title='Interactive Correlation Matrix')
+                fig = px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r',
+                                title='🔥 Correlation Heatmap',
+                                color_continuous_midpoint=0)
                 fig.update_layout(**dark, height=450)
-                charts.append({'title': 'Correlations', 'json': fig.to_json()})
+                charts.append({'title': 'Correlation Matrix', 'json': fig.to_json()})
         except Exception:
             pass
 
-        # 5. Data Hierarchy: Sunburst
+        # 9. Sunburst for Hierarchical Categorical Data
         try:
             if len(cat_cols) >= 2:
-                fig = px.sunburst(df, path=cat_cols[:2], title='Categorical Hierarchy',
-                                  color_discrete_sequence=px.colors.qualitative.Prism)
+                fig = px.sunburst(df, path=cat_cols[:2], title='🌞 Categorical Hierarchy',
+                                  color_discrete_sequence=color_palettes['plotly'])
                 fig.update_layout(**dark, height=500)
-                charts.append({'title': 'Data Hierarchy', 'json': fig.to_json()})
+                charts.append({'title': 'Sunburst Hierarchy', 'json': fig.to_json()})
         except Exception:
             pass
 
-        # 6. Outlier Analysis
+        # 10. 2D Density Heatmap
         try:
-            if num_cols:
-                fig = px.box(df[num_cols[:6]], title='Outlier Detection (Box Plots)',
-                             color_discrete_sequence=px.colors.qualitative.Bold)
+            if len(num_cols) >= 2:
+                fig = px.density_heatmap(df, x=num_cols[0], y=num_cols[1],
+                                         title=f'🔥 2D Density: {num_cols[0]} vs {num_cols[1]}',
+                                         nbinsx=25, nbinsy=25, color_continuous_scale='Viridis')
                 fig.update_layout(**dark, height=450)
-                charts.append({'title': 'Outliers', 'json': fig.to_json()})
+                charts.append({'title': '2D Density Heatmap', 'json': fig.to_json()})
         except Exception:
             pass
 
-        # 7. Histogram with Rug
+        # 11. Histogram 2D (Alternative density)
+        try:
+            if len(num_cols) >= 2:
+                fig = px.histogram(df, x=num_cols[0], y=num_cols[1], nbinsx=15, nbinsy=15,
+                                   title=f'📊 2D Histogram: {num_cols[0]} vs {num_cols[1]}',
+                                   color_continuous_scale='Turbo')
+                fig.update_layout(**dark, height=450)
+                charts.append({'title': '2D Histogram', 'json': fig.to_json()})
+        except Exception:
+            pass
+
+        # 12. Parallel Categories for Categorical Relationships
+        try:
+            if len(cat_cols) >= 2:
+                fig = px.parallel_categories(df[cat_cols[:3]], title='🔀 Parallel Categories',
+                                             color_continuous_scale='Blues')
+                fig.update_layout(**dark, height=450)
+                charts.append({'title': 'Parallel Categories', 'json': fig.to_json()})
+        except Exception:
+            pass
+
+        # 13. Strip Plot (Scatter for categories)
+        try:
+            if num_cols and cat_cols:
+                fig = px.strip(df, x=cat_cols[0], y=num_cols[0],
+                               title=f'⚡ Strip Plot: {num_cols[0]} by {cat_cols[0]}',
+                               color_discrete_sequence=color_palettes['set1'])
+                fig.update_layout(**dark, height=400)
+                charts.append({'title': 'Strip Plot', 'json': fig.to_json()})
+        except Exception:
+            pass
+
+        # 14. Waterfall Chart (if data is suitable)
+        try:
+            if len(num_cols) >= 2:
+                sample_data = df[num_cols[0]].head(10).reset_index(drop=True)
+                fig = px.bar(x=sample_data.index, y=sample_data,
+                             title=f'📊 Sample Distribution: {num_cols[0]} (Top 10)',
+                             color=sample_data, color_continuous_scale='Rainbow')
+                fig.update_layout(**dark, height=350)
+                charts.append({'title': 'Colored Bar Chart', 'json': fig.to_json()})
+        except Exception:
+            pass
+
+        # 15. ECDF (Empirical Cumulative Distribution Function)
         try:
             if num_cols:
                 col = num_cols[0]
-                fig = px.histogram(df, x=col, marginal="rug", title=f'Frequency: {col}',
-                                   color_discrete_sequence=['#2ca02c'])
+                fig = px.ecdf(df, x=col, title=f'📈 ECDF: {col}',
+                              color_discrete_sequence=['#FFA07A'])
                 fig.update_layout(**dark, height=350)
-                charts.append({'title': 'Hist + Rug', 'json': fig.to_json()})
+                charts.append({'title': 'ECDF Curve', 'json': fig.to_json()})
         except Exception:
             pass
 
@@ -335,6 +440,8 @@ def _build_pdf_report(df, path, filename):
                             spaceAfter=4, spaceBefore=10, fontName='Helvetica-Bold')
         h3 = ParagraphStyle('H3', fontSize=11, textColor=TEXT,
                             spaceAfter=3, spaceBefore=6, fontName='Helvetica-Bold')
+        h4 = ParagraphStyle('H4', fontSize=9, textColor=TEXT,
+                            spaceAfter=2, spaceBefore=4, fontName='Helvetica-Bold')
         body = ParagraphStyle('Body', fontSize=9, textColor=TEXT,
                               spaceAfter=2, fontName='Helvetica', leading=14)
         muted_style = ParagraphStyle('Muted', fontSize=8, textColor=MUTED,
@@ -358,7 +465,7 @@ def _build_pdf_report(df, path, filename):
         story.append(Spacer(1, 1.5*inch))
         story.append(Paragraph("DATAZEN", ParagraphStyle(
             'Cover', fontSize=40, textColor=ACCENT, fontName='Helvetica-Bold', alignment=TA_CENTER)))
-        story.append(Paragraph("Dataset Analysis Report", ParagraphStyle(
+        story.append(Paragraph("Comprehensive Dataset Analysis Report", ParagraphStyle(
             'Sub', fontSize=16, textColor=MUTED, fontName='Helvetica', alignment=TA_CENTER, spaceAfter=4)))
         story.append(Spacer(1, 0.2*inch))
         story.append(HRFlowable(width="60%", thickness=1, color=ACCENT, hAlign='CENTER'))
@@ -370,11 +477,12 @@ def _build_pdf_report(df, path, filename):
         story.append(Spacer(1, 0.4*inch))
 
         kpi_data = [
-            ['Rows', 'Columns', 'Numerical', 'Categorical', 'Null Values'],
+            ['Rows', 'Columns', 'Numerical', 'Categorical', 'Null Values', 'Memory'],
             [str(df.shape[0]), str(df.shape[1]), str(len(num_cols)),
-             str(len(cat_cols)), str(int(df.isnull().sum().sum()))]
+             str(len(cat_cols)), str(int(df.isnull().sum().sum())), 
+             f"{df.memory_usage(deep=True).sum() / 1024:.0f} KB"]
         ]
-        kpi_table = Table(kpi_data, colWidths=[2.8*cm]*5)
+        kpi_table = Table(kpi_data, colWidths=[2.2*cm]*6)
         kpi_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), CARD),
             ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#21262d')),
@@ -382,7 +490,7 @@ def _build_pdf_report(df, path, filename):
             ('TEXTCOLOR', (0, 1), (-1, 1), ACCENT),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 8),
-            ('FONTSIZE', (0, 1), (-1, 1), 16),
+            ('FONTSIZE', (0, 1), (-1, 1), 14),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('BOX', (0, 0), (-1, -1), 0.5, ACCENT),
@@ -391,49 +499,114 @@ def _build_pdf_report(df, path, filename):
         ]))
         story.append(kpi_table)
         story.append(Spacer(1, 0.5*inch))
-        story.append(Paragraph("Contents: Overview  -  Data Quality  -  Stats  -  Visuals", muted_style))
+        story.append(Paragraph("Contents: Dataset Details  -  Column Overview  -  Statistics  -  Visual Insights  -  Correlations  -  Summary", 
+                              ParagraphStyle('Contents', fontSize=7, textColor=MUTED, fontName='Helvetica', leading=10)))
         story.append(PageBreak())
 
-        # ---- PAGE 2: Dataset Overview ----
-        story.append(Paragraph("1. Dataset Overview", h2))
+        # ---- PAGE 2: Detailed Dataset Info ----
+        story.append(Paragraph("1. Detailed Dataset Information", h2))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
         story.append(Spacer(1, 0.15*inch))
-        story.append(Paragraph(
-            f"Shape: <b>{df.shape[0]} rows x {df.shape[1]} columns</b>", body))
+        
+        story.append(Paragraph("Dataset Dimensions & Composition", h3))
+        story.append(Paragraph(f"<b>Total Records:</b> {df.shape[0]:,} rows", body))
+        story.append(Paragraph(f"<b>Total Features:</b> {df.shape[1]} columns", body))
+        story.append(Paragraph(f"<b>Memory Usage:</b> {df.memory_usage(deep=True).sum() / (1024*1024):.2f} MB", body))
         story.append(Spacer(1, 0.1*inch))
-        story.append(Paragraph("Column Information", h3))
+        
+        story.append(Paragraph("Column Breakdown", h3))
+        story.append(Paragraph(f"<b>Numerical Columns:</b> {len(num_cols)}", body))
+        if num_cols:
+            story.append(Paragraph(f"{', '.join(num_cols[:10])}", 
+                                  ParagraphStyle('Small', fontSize=8, textColor=MUTED, fontName='Helvetica')))
+        story.append(Spacer(1, 0.08*inch))
+        story.append(Paragraph(f"<b>Categorical Columns:</b> {len(cat_cols)}", body))
+        if cat_cols:
+            story.append(Paragraph(f"{', '.join(cat_cols[:10])}", 
+                                  ParagraphStyle('Small', fontSize=8, textColor=MUTED, fontName='Helvetica')))
+        story.append(Spacer(1, 0.12*inch))
+        
+        story.append(Paragraph("Data Quality Metrics", h3))
+        total_cells = df.shape[0] * df.shape[1]
+        null_cells = int(df.isnull().sum().sum())
+        completeness = ((total_cells - null_cells) / total_cells * 100)
+        story.append(Paragraph(f"<b>Total Cells:</b> {total_cells:,}", body))
+        story.append(Paragraph(f"<b>Missing Values:</b> {null_cells:,} ({100 - completeness:.2f}%)", body))
+        story.append(Paragraph(f"<b>Completeness:</b> {completeness:.2f}%", body))
+        story.append(Spacer(1, 0.12*inch))
+        
+        story.append(Paragraph("Null Values Distribution", h3))
+        null_data = [['Column', 'Nulls', 'Percentage']]
+        null_cols = df.columns[df.isnull().sum() > 0].tolist()
+        for col in null_cols[:15]:
+            null_count = int(df[col].isnull().sum())
+            null_pct = (null_count / len(df)) * 100
+            null_data.append([col[:20], str(null_count), f'{null_pct:.1f}%'])
+        
+        if null_data != [['Column', 'Nulls', 'Percentage']]:
+            null_table = Table(null_data, colWidths=[5*cm, 2.5*cm, 2.5*cm])
+            null_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), CARD),
+                ('TEXTCOLOR', (0, 0), (-1, 0), ACCENT),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#161b22'), colors.HexColor('#0d1117')]),
+                ('TEXTCOLOR', (0, 1), (-1, -1), TEXT),
+                ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#21262d')),
+            ]))
+            story.append(null_table)
+        else:
+            story.append(Paragraph("No missing values detected!", ParagraphStyle('Success', fontSize=9, textColor=colors.HexColor('#7ee787'), fontName='Helvetica')))
+        
+        story.append(PageBreak())
 
-        col_data = [['Column', 'Type', 'Dtype', 'Unique', 'Nulls']]
-        for col in df.columns[:25]:  # Limit to avoid overflow
+        # ---- PAGE 3: Column Overview ----
+        story.append(Paragraph("2. Column Overview", h2))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
+        story.append(Spacer(1, 0.15*inch))
+
+        col_data = [['Column', 'Type', 'Dtype', 'Unique', 'Nulls', 'Min/Max/Mode']]
+        for col in df.columns[:25]:
             ctype = 'Numerical' if col in num_cols else 'Categorical'
+            if col in num_cols:
+                min_val = f"{df[col].min():.2f}"
+                max_val = f"{df[col].max():.2f}"
+                info = f"{min_val} to {max_val}"
+            else:
+                mode_val = df[col].mode()[0] if not df[col].mode().empty else 'N/A'
+                info = str(mode_val)[:15]
+            
             col_data.append([col[:20], ctype, str(df[col].dtype),
-                            str(df[col].nunique()), str(int(df[col].isnull().sum()))])
+                            str(df[col].nunique()), str(int(df[col].isnull().sum())), info])
 
-        col_table = Table(col_data, colWidths=[4.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+        col_table = Table(col_data, colWidths=[3.5*cm, 2*cm, 2*cm, 1.8*cm, 1.5*cm, 2.7*cm])
         col_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), CARD),
             ('TEXTCOLOR', (0, 0), (-1, 0), ACCENT),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#161b22'), colors.HexColor('#0d1117')]),
             ('TEXTCOLOR', (0, 1), (-1, -1), TEXT),
             ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#21262d')),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ]))
         story.append(col_table)
         story.append(PageBreak())
 
-        # ---- PAGE 3: Statistics ----
-        story.append(Paragraph("2. Statistical Summary", h2))
+        # ---- PAGE 4: Statistical Summary ----
+        story.append(Paragraph("3. Statistical Summary", h2))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
         story.append(Spacer(1, 0.15*inch))
+        
         if num_cols:
+            story.append(Paragraph("Numerical Statistics", h3))
             desc = df[num_cols].describe().round(3)
-            desc_data = [['Stat'] + num_cols[:6]]
+            desc_data = [['Metric'] + num_cols[:7]]
             for idx in desc.index:
                 row = [str(idx)]
-                for col in num_cols[:6]:
+                for col in num_cols[:7]:
                     row.append(str(desc.loc[idx, col]))
                 desc_data.append(row)
-            desc_table = Table(desc_data)
+            
+            desc_table = Table(desc_data, colWidths=[1.5*cm] + [1.7*cm]*7)
             desc_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), CARD),
                 ('TEXTCOLOR', (0, 0), (-1, 0), ACCENT),
@@ -444,50 +617,176 @@ def _build_pdf_report(df, path, filename):
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ]))
             story.append(desc_table)
+            story.append(Spacer(1, 0.2*inch))
+
+        if cat_cols:
+            story.append(Paragraph("Categorical Statistics", h3))
+            for col in cat_cols[:3]:
+                vc = df[col].value_counts().head(5)
+                story.append(Paragraph(f"<b>{col}</b>", h4))
+                cat_stat_data = [['Value', 'Count', 'Percentage']]
+                for val, count in vc.items():
+                    pct = (count / len(df)) * 100
+                    cat_stat_data.append([str(val)[:25], str(count), f'{pct:.1f}%'])
+                
+                cat_table = Table(cat_stat_data, colWidths=[5*cm, 2.5*cm, 2.5*cm])
+                cat_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), CARD),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), ACCENT),
+                    ('FONTSIZE', (0, 0), (-1, -1), 7),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#161b22'), colors.HexColor('#0d1117')]),
+                    ('TEXTCOLOR', (0, 1), (-1, -1), TEXT),
+                    ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#21262d')),
+                ]))
+                story.append(cat_table)
+                story.append(Spacer(1, 0.1*inch))
+        
         story.append(PageBreak())
 
-        # ---- PAGE 4: Visualizations ----
-        story.append(Paragraph("3. Visual Insights", h2))
+        # ---- PAGE 5: Visual Insights ----
+        story.append(Paragraph("4. Visual Insights", h2))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
         story.append(Spacer(1, 0.15*inch))
         
-        # Add histogram if numerical columns exist
+        # Histogram
         if num_cols:
             try:
-                fig, ax = plt.subplots(figsize=(8, 4), facecolor='#0d1117')
+                fig, ax = plt.subplots(figsize=(7, 3.5), facecolor='#0d1117')
                 ax.set_facecolor('#161b22')
-                df[num_cols[0]].dropna().hist(ax=ax, color='#58a6ff', bins=30, edgecolor='#30363d')
-                ax.set_title(f"Distribution of {num_cols[0]}", color='#e6edf3', fontsize=12, fontweight='bold')
-                ax.set_xlabel(num_cols[0], color='#8b949e')
-                ax.set_ylabel('Frequency', color='#8b949e')
-                ax.tick_params(colors='#8b949e')
+                df[num_cols[0]].dropna().hist(ax=ax, color='#FF6B6B', bins=40, edgecolor='#30363d')
+                ax.set_title(f"Distribution of {num_cols[0]}", color='#e6edf3', fontsize=11, fontweight='bold')
+                ax.set_xlabel(num_cols[0], color='#8b949e', fontsize=9)
+                ax.set_ylabel('Frequency', color='#8b949e', fontsize=9)
+                ax.tick_params(colors='#8b949e', labelsize=8)
                 ax.spines['bottom'].set_color('#30363d')
                 ax.spines['left'].set_color('#30363d')
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
                 img_bytes = _mpl_fig_to_bytes(fig)
                 plt.close(fig)
-                story.append(RLImage(io.BytesIO(img_bytes), width=14*cm, height=6*cm))
-                story.append(Spacer(1, 0.2*inch))
+                story.append(Paragraph("Histogram", h3))
+                story.append(RLImage(io.BytesIO(img_bytes), width=13*cm, height=5.5*cm))
+                story.append(Spacer(1, 0.1*inch))
             except Exception as e:
                 print(f"Error creating histogram: {e}")
-                story.append(Paragraph(f"Could not generate histogram: {str(e)}", body))
+        
+        # Box plot for multiple columns
+        if len(num_cols) >= 2:
+            try:
+                fig, ax = plt.subplots(figsize=(7, 3.5), facecolor='#0d1117')
+                ax.set_facecolor('#161b22')
+                cols_to_plot = num_cols[:5]
+                df[cols_to_plot].boxplot(ax=ax, patch_artist=True)
+                ax.set_title("Outlier Detection (Box Plots)", color='#e6edf3', fontsize=11, fontweight='bold')
+                ax.set_ylabel('Value', color='#8b949e', fontsize=9)
+                ax.tick_params(colors='#8b949e', labelsize=8)
+                ax.spines['bottom'].set_color('#30363d')
+                ax.spines['left'].set_color('#30363d')
+                for patch in ax.artists:
+                    patch.set_facecolor('#4ECDC4')
+                img_bytes = _mpl_fig_to_bytes(fig)
+                plt.close(fig)
+                story.append(Paragraph("Box Plots", h3))
+                story.append(RLImage(io.BytesIO(img_bytes), width=13*cm, height=5.5*cm))
+            except Exception as e:
+                print(f"Error creating box plot: {e}")
         
         story.append(PageBreak())
 
-        # ---- PAGE 5: Summary ----
-        story.append(Paragraph("4. Summary & Insights", h2))
+        # ---- PAGE 6: Correlations & Advanced Insights ----
+        story.append(Paragraph("5. Correlation Analysis", h2))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
         story.append(Spacer(1, 0.15*inch))
-        story.append(Paragraph(f"<b>Dataset Size:</b> {df.shape[0]} rows, {df.shape[1]} columns", body))
+        
+        if len(num_cols) >= 2:
+            try:
+                corr = df[num_cols].corr().round(2)
+                
+                # Scatter plot for top 2 numerical columns
+                fig, ax = plt.subplots(figsize=(7, 4), facecolor='#0d1117')
+                ax.set_facecolor('#161b22')
+                ax.scatter(df[num_cols[0]], df[num_cols[1]], alpha=0.6, color='#45B7D1', s=30, edgecolors='#30363d', linewidth=0.5)
+                ax.set_xlabel(num_cols[0], color='#8b949e', fontsize=9)
+                ax.set_ylabel(num_cols[1], color='#8b949e', fontsize=9)
+                ax.set_title(f"Relationship: {num_cols[0]} vs {num_cols[1]}", color='#e6edf3', fontsize=11, fontweight='bold')
+                ax.tick_params(colors='#8b949e', labelsize=8)
+                ax.spines['bottom'].set_color('#30363d')
+                ax.spines['left'].set_color('#30363d')
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.grid(alpha=0.1, color='#30363d')
+                img_bytes = _mpl_fig_to_bytes(fig)
+                plt.close(fig)
+                story.append(Paragraph("Scatter Plot Analysis", h3))
+                story.append(RLImage(io.BytesIO(img_bytes), width=13*cm, height=6*cm))
+                story.append(Spacer(1, 0.15*inch))
+                
+                # Correlation matrix
+                story.append(Paragraph("Correlation Matrix", h3))
+                corr_data = [[''] + num_cols[:8]]
+                for idx, row_name in enumerate(num_cols[:8]):
+                    row = [row_name]
+                    for col_name in num_cols[:8]:
+                        row.append(f"{corr.loc[row_name, col_name]:.2f}")
+                    corr_data.append(row)
+                
+                corr_table = Table(corr_data, colWidths=[1.8*cm]*9)
+                corr_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), CARD),
+                    ('BACKGROUND', (0, 0), (0, -1), CARD),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), ACCENT),
+                    ('FONTSIZE', (0, 0), (-1, -1), 6),
+                    ('ROWBACKGROUNDS', (1, 1), (-1, -1), [colors.HexColor('#161b22'), colors.HexColor('#0d1117')]),
+                    ('TEXTCOLOR', (1, 1), (-1, -1), TEXT),
+                    ('INNERGRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#21262d')),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ]))
+                story.append(corr_table)
+            except Exception as e:
+                print(f"Error creating correlation analysis: {e}")
+        
+        story.append(PageBreak())
+
+        # ---- PAGE 7: Summary & Recommendations ----
+        story.append(Paragraph("6. Summary & Key Findings", h2))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
+        story.append(Spacer(1, 0.15*inch))
+        
+        story.append(Paragraph("<b>Dataset Overview</b>", h3))
+        story.append(Paragraph(f"Your dataset contains {df.shape[0]:,} records with {df.shape[1]} features spanning both numerical and categorical data types.", body))
         story.append(Spacer(1, 0.1*inch))
-        story.append(Paragraph(f"<b>Data Types:</b> {len(num_cols)} numerical, {len(cat_cols)} categorical", body))
+        
+        story.append(Paragraph("<b>Data Quality Assessment</b>", h3))
+        if completeness >= 95:
+            story.append(Paragraph(f"✓ Excellent data quality with {completeness:.1f}% completeness.", 
+                                  ParagraphStyle('Good', fontSize=9, textColor=colors.HexColor('#7ee787'), fontName='Helvetica')))
+        elif completeness >= 80:
+            story.append(Paragraph(f"⚠ Good data quality with {completeness:.1f}% completeness. Some missing values detected.", 
+                                  ParagraphStyle('Warn', fontSize=9, textColor=colors.HexColor('#d29922'), fontName='Helvetica')))
+        else:
+            story.append(Paragraph(f"✗ Data quality needs attention. Only {completeness:.1f}% completeness.", 
+                                  ParagraphStyle('Bad', fontSize=9, textColor=colors.HexColor('#f85149'), fontName='Helvetica')))
         story.append(Spacer(1, 0.1*inch))
-        story.append(Paragraph(f"<b>Missing Values:</b> {int(df.isnull().sum().sum())} total nulls", body))
+        
+        story.append(Paragraph("<b>Column Statistics</b>", h3))
+        story.append(Paragraph(f"• Numerical columns: {len(num_cols)}", body))
+        story.append(Paragraph(f"• Categorical columns: {len(cat_cols)}", body))
+        story.append(Paragraph(f"• Unique values range: {df.nunique().min()} to {df.nunique().max()}", body))
         story.append(Spacer(1, 0.1*inch))
-        story.append(Paragraph("<b>Data Quality:</b> Report generated successfully by DataZen", body))
-        story.append(Spacer(1, 0.3*inch))
-        story.append(Paragraph("Report prepared on: " + datetime.now().strftime('%B %d, %Y'), muted_style))
+        
+        story.append(Paragraph("<b>Data Distribution</b>", h3))
+        if num_cols:
+            story.append(Paragraph(f"Primary numerical variable '{num_cols[0]}' shows ", body))
+            skewness = df[num_cols[0]].skew()
+            if abs(skewness) < 0.5:
+                story.append(Paragraph("a relatively symmetric distribution.", body))
+            elif skewness > 0:
+                story.append(Paragraph("a right-skewed distribution.", body))
+            else:
+                story.append(Paragraph("a left-skewed distribution.", body))
+        story.append(Spacer(1, 0.2*inch))
+        
+        story.append(Paragraph("Report generated by DataZen • " + datetime.now().strftime('%B %d, %Y at %H:%M'), muted_style))
 
         doc.build(story, onFirstPage=page_bg, onLaterPages=page_bg)
     except Exception as e:
