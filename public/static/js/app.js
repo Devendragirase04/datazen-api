@@ -221,21 +221,32 @@ async function loadDashboard() {
       return;
     }
 
-    data.charts.forEach((chart, i) => {
-      const card = document.createElement('div');
-      card.className = 'chart-card';
-      card.innerHTML = `
-        <div class="chart-card-header">
-          <span>${chart.title}</span>
-          <span style="font-size:10px;color:var(--bg3)">Plotly</span>
-        </div>
-        <div class="chart-card-body" id="chart_${i}"></div>`;
-      grid.appendChild(card);
-      
-      const chartData = JSON.parse(chart.json);
-      Plotly.newPlot(`chart_${i}`, chartData.data, chartData.layout, {responsive: true, displayModeBar: false});
-    });
-    showToast(`${data.charts.length} charts generated`, 'success');
+    if (data.charts && data.charts.length > 0) {
+      data.charts.forEach((chart, i) => {
+        if (!chart || !chart.json) return;
+        
+        const card = document.createElement('div');
+        card.className = 'chart-card';
+        card.innerHTML = `
+          <div class="chart-card-header">
+            <span>${chart.title || 'Visualization'}</span>
+            <span style="font-size:10px;color:var(--bg3)">Plotly</span>
+          </div>
+          <div class="chart-card-body" id="chart_${i}"></div>`;
+        grid.appendChild(card);
+        
+        try {
+          const chartData = JSON.parse(chart.json);
+          Plotly.newPlot(`chart_${i}`, chartData.data || [], chartData.layout || {}, {responsive: true, displayModeBar: false});
+        } catch (err) {
+          console.error("Plotly Error:", err);
+          document.getElementById(`chart_${i}`).innerHTML = '<p class="danger">Chart parse error</p>';
+        }
+      });
+      showToast(`${data.charts.length} charts generated`, 'success');
+    } else {
+      grid.innerHTML = '<p style="color:var(--muted);padding:40px">No charts could be generated for this dataset.</p>';
+    }
   } catch (e) {
     loading.classList.add('hidden');
     showToast('Dashboard error: ' + e.message, 'error');
