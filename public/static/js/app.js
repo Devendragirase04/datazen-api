@@ -16,7 +16,9 @@ zone.addEventListener('drop', e => {
   const file = e.dataTransfer.files[0];
   if (file) handleFile(file);
 });
-zone.addEventListener('click', () => fileInput.click());
+zone.addEventListener('click', (e) => {
+  if (e.target.tagName !== 'BUTTON') fileInput.click();
+});
 fileInput.addEventListener('change', e => {
   if (e.target.files[0]) handleFile(e.target.files[0]);
 });
@@ -90,7 +92,7 @@ function buildQualityPanel() {
   const s = summaryData;
 
   document.getElementById('datasetInfo').textContent =
-    `${currentFilename}.csv  •  ${s.shape[0].toLocaleString()} rows × ${s.shape[1]} columns  •  ${s.memory_usage}`;
+    `${currentFilename}.csv | ${s.shape[0].toLocaleString()} rows x ${s.shape[1]} columns | ${s.memory_usage}`;
 
   // KPI
   const totalNulls = s.total_nulls;
@@ -188,7 +190,7 @@ async function applyFillNulls() {
     const data = await res.json();
     summaryData = data.summary;
     buildQualityPanel();
-    showToast(`✓ Imputation applied to ${data.applied.length} columns`, 'success');
+    showToast(`Imputation applied to ${data.applied.length} columns`, 'success');
   } catch (e) {
     showToast('Error: ' + e.message, 'error');
   } finally {

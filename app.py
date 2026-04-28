@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import datetime
 import io
 import os
@@ -346,7 +347,7 @@ def _build_pdf_report(df, path, filename):
         canvas.rect(0, A4[1]-3, A4[0], 3, fill=1, stroke=0)
         canvas.setFillColor(MUTED)
         canvas.setFont('Helvetica', 7)
-        canvas.drawString(1.8*cm, 0.8*cm, f'DataZen Report  •  {filename}  •  Page {doc.page}')
+        canvas.drawString(1.8*cm, 0.8*cm, f'DataZen Report | {filename} | Page {doc.page}')
         canvas.drawRightString(A4[0]-1.8*cm, 0.8*cm, datetime.now().strftime('%B %d, %Y'))
         canvas.restoreState()
 
@@ -389,7 +390,7 @@ def _build_pdf_report(df, path, filename):
     ]))
     story.append(kpi_table)
     story.append(Spacer(1, 0.5*inch))
-    story.append(Paragraph("Contents: Overview  •  Data Quality  •  Stats  •  Visuals", muted_style))
+    story.append(Paragraph("Contents: Overview  -  Data Quality  -  Stats  -  Visuals", muted_style))
     story.append(PageBreak())
 
     # ---- PAGE 2: Dataset Overview ----
@@ -397,7 +398,7 @@ def _build_pdf_report(df, path, filename):
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#30363d')))
     story.append(Spacer(1, 0.15*inch))
     story.append(Paragraph(
-        f"Shape: <b>{df.shape[0]} rows × {df.shape[1]} columns</b>", body))
+        f"Shape: <b>{df.shape[0]} rows x {df.shape[1]} columns</b>", body))
     story.append(Spacer(1, 0.1*inch))
     story.append(Paragraph("Column Information", h3))
 
