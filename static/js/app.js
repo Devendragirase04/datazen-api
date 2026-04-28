@@ -1,4 +1,4 @@
-const API = 'https://datazen-api.onrender.com';  // use relative path for production
+const API = '';  // use relative paths to call the local Flask server
 let sessionId = null;
 let summaryData = null;
 let currentFilename = 'dataset';
