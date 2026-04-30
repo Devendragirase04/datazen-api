@@ -189,114 +189,147 @@ def dashboard():
 
         # 1. Histogram with Rug - First numerical column
         try:
-            if num_cols:
+            if len(num_cols) >= 1:
                 col = num_cols[0]
                 fig = px.histogram(df, x=col, marginal="rug", title=f'📊 Frequency Distribution: {col}',
                                    nbins=40, color_discrete_sequence=['#FF6B6B'])
                 fig.update_layout(**dark, height=400, bargap=0.1)
                 charts.append({'title': 'Histogram + Rug', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error Histogram: {e}")
 
         # 2. Violin Plots for multiple numerical columns
         try:
-            for i, col in enumerate(num_cols[:4]):
-                fig = px.violin(df, y=col, box=True, points='outliers',
-                                title=f'🎻 Violin Plot: {col}',
-                                color_discrete_sequence=[color_palettes['vivid'][i % len(color_palettes['vivid'])]])
+            if len(num_cols) >= 1:
+                plot_cols = num_cols[:min(4, len(num_cols))]
+                fig = px.violin(df, y=plot_cols, box=True, points='all',
+                                title='🎻 Distribution & Density (Violin)',
+                                color_discrete_sequence=color_palettes['vivid'])
                 fig.update_layout(**dark, height=400)
-                charts.append({'title': f'Violin: {col}', 'json': fig.to_json()})
-        except Exception:
-            pass
+                charts.append({'title': 'Violin Plots', 'json': fig.to_json()})
+        except Exception as e:
+            print(f"Error Violin: {e}")
 
         # 3. Scatter Plot with Trendline
         try:
             if len(num_cols) >= 2:
                 try:
-                    fig = px.scatter(df, x=num_cols[0], y=num_cols[1], trendline="lowess",
+                    fig = px.scatter(df, x=num_cols[0], y=num_cols[1], trendline="ols",
                                      title=f'📈 Correlation: {num_cols[0]} vs {num_cols[1]}',
                                      color_discrete_sequence=['#4ECDC4'])
-                    fig.update_traces(marker=dict(size=8, opacity=0.6))
+                    fig.update_traces(marker=dict(size=8, opacity=0.7))
                 except Exception:
                     fig = px.scatter(df, x=num_cols[0], y=num_cols[1],
-                                     title=f'📈 Correlation: {num_cols[0]} vs {num_cols[1]}',
+                                     title=f'📈 Scatter: {num_cols[0]} vs {num_cols[1]}',
                                      color_discrete_sequence=['#4ECDC4'])
                 fig.update_layout(**dark, height=450)
                 charts.append({'title': 'Scatter Plot', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error Scatter: {e}")
 
         # 4. Box Plot for Outlier Detection
         try:
-            if num_cols:
-                fig = px.box(df[num_cols[:8]], title='📦 Outlier Detection (Box Plots)',
-                             color_discrete_sequence=color_palettes['vivid'])
+            if len(num_cols) >= 1:
+                # Use different columns if available
+                box_cols = num_cols[1:5] if len(num_cols) > 2 else num_cols[:2]
+                fig = px.box(df[box_cols], title='📦 Outlier Detection (Box Plots)',
+                             color_discrete_sequence=color_palettes['pastel'])
                 fig.update_layout(**dark, height=450)
                 charts.append({'title': 'Box Plot Analysis', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error Box: {e}")
 
-        # 5. Area Chart - Cumulative Sum
+        # 5. Area Chart 
         try:
-            if num_cols:
-                col = num_cols[0]
-                cumsum_data = df[col].dropna().cumsum()
-                fig = px.area(y=cumsum_data, title=f'📈 Cumulative Sum: {col}',
-                              color_discrete_sequence=['#45B7D1'])
-                fig.update_layout(**dark, height=350)
-                charts.append({'title': 'Cumulative Area Chart', 'json': fig.to_json()})
-        except Exception:
-            pass
+            if len(num_cols) >= 2:
+                col1 = num_cols[0]
+                col2 = num_cols[1]
+                fig = px.area(df.head(50), x=df.index[:50], y=[col1, col2], 
+                              title=f'⛰️ Area Chart (First 50 Rows): {col1} & {col2}',
+                              color_discrete_sequence=color_palettes['set2'])
+                fig.update_layout(**dark, height=400)
+                charts.append({'title': 'Area Chart', 'json': fig.to_json()})
+        except Exception as e:
+            print(f"Error Area: {e}")
 
         # 6. Bar Chart for Categorical Data
         try:
-            if cat_cols:
+            if len(cat_cols) >= 1:
                 col = cat_cols[0]
                 vc = df[col].value_counts().head(12)
                 fig = px.bar(x=vc.index.astype(str), y=vc.values,
                              title=f'📊 Category Distribution: {col}',
-                             color_discrete_sequence=color_palettes['vivid'])
+                             color_discrete_sequence=['#BB8FCE'])
                 fig.update_layout(**dark, height=400, xaxis_tickangle=45)
                 charts.append({'title': f'Bar Chart: {col}', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error Bar: {e}")
 
         # 7. Donut Chart (Pie with hole)
         try:
-            if cat_cols:
-                col = cat_cols[0]
-                vc = df[col].value_counts().head(10)
-                fig = px.pie(values=vc.values, names=vc.index.astype(str), hole=0.4,
-                             title=f'🍩 Proportion: {col}',
+            if len(cat_cols) >= 1:
+                # Try to use a different categorical column
+                col = cat_cols[1] if len(cat_cols) > 1 else cat_cols[0]
+                vc = df[col].value_counts().head(8)
+                fig = px.pie(values=vc.values, names=vc.index.astype(str), hole=0.5,
+                             title=f'🍩 Proportion (Donut): {col}',
                              color_discrete_sequence=color_palettes['bold'])
                 fig.update_layout(**dark, height=400)
                 charts.append({'title': 'Donut Chart', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error Donut: {e}")
 
-        # 8. Correlation Heatmap
+        # 8. Standard Pie Chart
         try:
-            if len(num_cols) >= 3:
+            if len(cat_cols) >= 1:
+                # Try to use a different categorical column
+                col = cat_cols[2] if len(cat_cols) > 2 else cat_cols[0]
+                vc = df[col].value_counts().head(8)
+                fig = px.pie(values=vc.values, names=vc.index.astype(str),
+                             title=f'🍕 Proportion (Pie): {col}',
+                             color_discrete_sequence=color_palettes['set3'])
+                fig.update_layout(**dark, height=400)
+                charts.append({'title': 'Pie Chart', 'json': fig.to_json()})
+        except Exception as e:
+            print(f"Error Pie: {e}")
+
+        # 9. Correlation Heatmap
+        try:
+            if len(num_cols) >= 2:
                 corr = df[num_cols].corr().round(2)
                 fig = px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r',
                                 title='🔥 Correlation Heatmap',
                                 color_continuous_midpoint=0)
                 fig.update_layout(**dark, height=450)
                 charts.append({'title': 'Correlation Matrix', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error Heatmap: {e}")
 
-        # 9. Sunburst for Hierarchical Categorical Data
+        # 10. Line Chart
         try:
-            if len(cat_cols) >= 2:
-                fig = px.sunburst(df, path=cat_cols[:2], title='🌞 Categorical Hierarchy',
-                                  color_discrete_sequence=color_palettes['plotly'])
-                fig.update_layout(**dark, height=500)
-                charts.append({'title': 'Sunburst Hierarchy', 'json': fig.to_json()})
-        except Exception:
-            pass
+            if len(num_cols) >= 1:
+                col = num_cols[-1] # Use the last num col for variety
+                fig = px.line(df.head(100), y=col, title=f'📈 Line Chart (First 100 Rows): {col}',
+                              color_discrete_sequence=['#F7DC6F'])
+                fig.update_layout(**dark, height=400)
+                charts.append({'title': 'Line Chart', 'json': fig.to_json()})
+        except Exception as e:
+            print(f"Error Line: {e}")
 
-        # 10. 2D Density Heatmap
+        # 11. Funnel Chart (if categorical data exists)
+        try:
+            if len(cat_cols) >= 1:
+                col = cat_cols[0]
+                vc = df[col].value_counts().head(6).reset_index()
+                vc.columns = [col, 'count']
+                fig = px.funnel(vc, x='count', y=col, title=f'🔽 Funnel Chart: {col}',
+                                color_discrete_sequence=color_palettes['vivid'])
+                fig.update_layout(**dark, height=400)
+                charts.append({'title': 'Funnel Chart', 'json': fig.to_json()})
+        except Exception as e:
+            print(f"Error Funnel: {e}")
+
+        # 12. 2D Density Heatmap
         try:
             if len(num_cols) >= 2:
                 fig = px.density_heatmap(df, x=num_cols[0], y=num_cols[1],
@@ -304,63 +337,32 @@ def dashboard():
                                          nbinsx=25, nbinsy=25, color_continuous_scale='Viridis')
                 fig.update_layout(**dark, height=450)
                 charts.append({'title': '2D Density Heatmap', 'json': fig.to_json()})
-        except Exception:
-            pass
-
-        # 11. Histogram 2D (Alternative density)
-        try:
-            if len(num_cols) >= 2:
-                fig = px.histogram(df, x=num_cols[0], y=num_cols[1], nbinsx=15, nbinsy=15,
-                                   title=f'📊 2D Histogram: {num_cols[0]} vs {num_cols[1]}',
-                                   color_continuous_scale='Turbo')
-                fig.update_layout(**dark, height=450)
-                charts.append({'title': '2D Histogram', 'json': fig.to_json()})
-        except Exception:
-            pass
-
-        # 12. Parallel Categories for Categorical Relationships
-        try:
-            if len(cat_cols) >= 2:
-                fig = px.parallel_categories(df[cat_cols[:3]], title='🔀 Parallel Categories',
-                                             color_continuous_scale='Blues')
-                fig.update_layout(**dark, height=450)
-                charts.append({'title': 'Parallel Categories', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error 2D Density: {e}")
 
         # 13. Strip Plot (Scatter for categories)
         try:
-            if num_cols and cat_cols:
-                fig = px.strip(df, x=cat_cols[0], y=num_cols[0],
-                               title=f'⚡ Strip Plot: {num_cols[0]} by {cat_cols[0]}',
+            if len(num_cols) >= 1 and len(cat_cols) >= 1:
+                num_col = num_cols[0]
+                cat_col = cat_cols[0]
+                fig = px.strip(df, x=cat_col, y=num_col,
+                               title=f'⚡ Strip Plot: {num_col} by {cat_col}',
                                color_discrete_sequence=color_palettes['set1'])
                 fig.update_layout(**dark, height=400)
                 charts.append({'title': 'Strip Plot', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error Strip: {e}")
 
-        # 14. Waterfall Chart (if data is suitable)
+        # 14. ECDF (Empirical Cumulative Distribution Function)
         try:
-            if len(num_cols) >= 2:
-                sample_data = df[num_cols[0]].head(10).reset_index(drop=True)
-                fig = px.bar(x=sample_data.index, y=sample_data,
-                             title=f'📊 Sample Distribution: {num_cols[0]} (Top 10)',
-                             color=sample_data, color_continuous_scale='Rainbow')
-                fig.update_layout(**dark, height=350)
-                charts.append({'title': 'Colored Bar Chart', 'json': fig.to_json()})
-        except Exception:
-            pass
-
-        # 15. ECDF (Empirical Cumulative Distribution Function)
-        try:
-            if num_cols:
+            if len(num_cols) >= 1:
                 col = num_cols[0]
-                fig = px.ecdf(df, x=col, title=f'📈 ECDF: {col}',
-                              color_discrete_sequence=['#FFA07A'])
+                fig = px.ecdf(df, x=col, title=f'📉 ECDF Curve: {col}',
+                              color_discrete_sequence=['#85C1E2'])
                 fig.update_layout(**dark, height=350)
                 charts.append({'title': 'ECDF Curve', 'json': fig.to_json()})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error ECDF: {e}")
 
         del df
         gc.collect()
